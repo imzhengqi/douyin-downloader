@@ -3,13 +3,11 @@ name: 打包Mac版抖音下载器
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - 'README.md'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build-mac-arm64:
-    runs-on: macos-latest  # 使用GitHub的Mac电脑
+    runs-on: macos-latest
     
     steps:
     - name: 检出代码
@@ -20,22 +18,33 @@ jobs:
       with:
         python-version: '3.10'
     
-    - name: 安装依赖包
+    - name: 安装依赖
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-        playwright install chromium
+        pip install --no-cache-dir requests beautifulsoup4 playwright pyinstaller
     
-    - name: 使用PyInstaller打包
+    - name: 安装 Playwright 浏览器
+      run: |
+        playwright install chromium
+        playwright install-deps
+    
+    - name: 获取 Playwright 浏览器路径
+      id: playwright_path
+      run: |
+        PLAYWRIGHT_PATH=$(python -c "from playwright.sync_api import sync_playwright; print(sync_playwright().start().chromium.executable_path)" 2>/dev/null || echo "")
+        echo "browser_path=$PLAYWRIGHT_PATH" >> $GITHUB_OUTPUT
+        # 或者使用固定路径
+        echo "browser_dir=$(python -c 'import playwright, os; print(os.path.dirname(playwright.__file__))')" >> $GITHUB_OUTPUT
+    
+    - name: 使用 PyInstaller 打包（包含浏览器）
       run: |
         pyinstaller --onefile \
           --name "DouyinDownloader" \
           --windowed \
           --hidden-import=tkinter \
-          --hidden-import=requests \
-          --hidden-import=beautifulsoup4 \
           --hidden-import=playwright \
+          --hidden-import=playwright.sync_api \
+          --hidden-import=playwright._impl \
+          --collect-all playwright \
           --add-data "$(python -c 'import playwright, os; print(os.path.dirname(playwright.__file__))'):playwright" \
           douyin_downloader.py
     
@@ -45,14 +54,3 @@ jobs:
         name: DouyinDownloader-Mac-M1
         path: dist/DouyinDownloader
         retention-days: 30
-
-    - name: 创建压缩包
-      run: |
-        cd dist
-        zip -r DouyinDownloader-Mac.zip DouyinDownloader
-    
-    - name: 上传压缩包
-      uses: actions/upload-artifact@v4
-      with:
-        name: DouyinDownloader-Mac-ZIP
-        path: dist/DouyinDownloader-Mac.zip
