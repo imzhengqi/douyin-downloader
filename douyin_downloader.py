@@ -9,6 +9,13 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
+import sys
+
+# 修复tkinter在打包后的问题
+if getattr(sys, 'frozen', False):
+    import tkinter
+    # 设置tkinter在Mac上的后端
+    os.environ['TK_SILENCE_DEPRECATION'] = '1'
 
 
 headers = {
