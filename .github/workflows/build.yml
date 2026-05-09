@@ -32,10 +32,10 @@ jobs:
 
       - name: Build macOS executable
         run: |
-          pyinstaller --onefile --windowed your_script_name.py
+          pyinstaller --onefile --windowed douyin_downloader.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: macos-app
-          path: dist/your_script_name
+          path: dist/douyin_downloader
