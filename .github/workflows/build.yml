@@ -1,46 +1,41 @@
-name: Build for macOS ARM64
+name: Build Mac App
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: macos-latest  # GitHub提供的macOS runner
+  build-macos:
+    runs-on: macos-13
     strategy:
       matrix:
-        architecture: [arm64]  # M1芯片用arm64
+        python-version: [3.11]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install requests beautifulsoup4 playwright
-        playwright install chromium
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
 
-    - name: Build with PyInstaller
-      run: |
-        pyinstaller --onefile \
-          --name "DouyinDownloader" \
-          --target-architecture universal2 \
-          --add-binary "/Users/runner/hostedtoolcache/Python/3.11.*/x64/lib/python3.11/site-packages/playwright/driver/node:./playwright/driver" \
-          --hidden-import=playwright \
-          --hidden-import=bs4 \
-          --hidden-import=requests \
-          douyin_downloader.py
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: DouyinDownloader-macOS-ARM64
-        path: dist/DouyinDownloader
+      - name: Build macOS executable
+        run: |
+          pyinstaller --onefile --windowed your_script_name.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-app
+          path: dist/your_script_name
